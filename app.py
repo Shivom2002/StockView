@@ -452,7 +452,13 @@ if analysis_result:
             ],
             columns=["Metric", "Value"],
         )
-        st.dataframe(fundamentals_table, hide_index=True, use_container_width=True)
+        try:
+            st.dataframe(fundamentals_table, hide_index=True, use_container_width=True)
+        except TypeError:
+            try:
+                st.dataframe(fundamentals_table, hide_index=True)
+            except TypeError:
+                st.dataframe(fundamentals_table)
 
     st.subheader("DCF Lite")
     if results["dcf"].get("enabled"):
@@ -478,7 +484,11 @@ if analysis_result:
 
         if sensitivity_table is not None:
             st.markdown("**Sensitivity (Value per Share)**")
-            st.dataframe(sensitivity_table.applymap(format_currency), use_container_width=True)
+            formatted_sensitivity_table = sensitivity_table.applymap(format_currency)
+            try:
+                st.dataframe(formatted_sensitivity_table, use_container_width=True)
+            except TypeError:
+                st.dataframe(formatted_sensitivity_table)
     else:
         st.warning("FCF unavailable; DCF disabled (Phase 1).")
 
