@@ -40,19 +40,19 @@ def render_markdown(results: Dict[str, Any]) -> str:
     lines.append(f"- Total debt: {format_currency_abbrev(fundamentals.get('total_debt'))}")
     lines.append("")
 
-    if dcf.get("enabled"):
-        lines.append("## DCF Lite")
-        lines.append(f"- Base intrinsic value per share: {format_currency(dcf.get('base_value'))}")
-        lines.append(f"- Bear intrinsic value per share: {format_currency(dcf.get('bear_value'))}")
-        lines.append(f"- Bull intrinsic value per share: {format_currency(dcf.get('bull_value'))}")
-        lines.append(
-            f"- Base assumptions: growth {format_percent(dcf.get('base_growth'))}, discount {format_percent(dcf.get('base_discount'))}, terminal {format_percent(dcf.get('base_terminal'))}"
-        )
-        lines.append("")
-    else:
-        lines.append("## DCF Lite")
-        lines.append("- FCF unavailable; DCF disabled in Phase 1.")
-        lines.append("")
+    # if dcf.get("enabled"):
+    #     lines.append("## DCF Lite")
+    #     lines.append(f"- Base intrinsic value per share: {format_currency(dcf.get('base_value'))}")
+    #     lines.append(f"- Bear intrinsic value per share: {format_currency(dcf.get('bear_value'))}")
+    #     lines.append(f"- Bull intrinsic value per share: {format_currency(dcf.get('bull_value'))}")
+    #     lines.append(
+    #         f"- Base assumptions: growth {format_percent(dcf.get('base_growth'))}, discount {format_percent(dcf.get('base_discount'))}, terminal {format_percent(dcf.get('base_terminal'))}"
+    #     )
+    #     lines.append("")
+    # else:
+    #     lines.append("## DCF Lite")
+    #     lines.append("- FCF unavailable; DCF disabled in Phase 1.")
+    #     lines.append("")
 
     lines.append("## Recommendation Summary")
     lines.append(rec.get("summary", "N/A"))

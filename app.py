@@ -9,7 +9,7 @@ import pandas as pd
 import streamlit as st
 
 from src.data import fetch_fundamentals, fetch_price_history
-from src.dcf import apply_scenario, build_sensitivity_table, dcf_valuation
+# from src.dcf import apply_scenario, build_sensitivity_table, dcf_valuation
 from src.fundamentals import parse_fundamentals
 from src.report import render_markdown
 from src.technicals import compute_indicators
@@ -24,49 +24,16 @@ from src.utils import (
     to_float,
 )
 
-st.set_page_config(page_title="Ticker Analyzer (Phase 1)", layout="wide")
+st.set_page_config(page_title="StockView", layout="wide")
 
-st.title("Ticker Analyzer (Phase 1)")
-st.info("Educational use only. This is not financial advice.")
+st.markdown("<h1 style='text-align: center;'>StockView</h1>", unsafe_allow_html=True)
 
-with st.sidebar:
-    st.header("Inputs")
-    with st.form("analyze_form"):
-        ticker_input = st.text_input("Ticker", value="AAPL")
-        st.caption("Price history: last 2 years (daily)")
-
-        growth_pct = st.slider(
-            "5Y FCF growth (base)",
-            min_value=0.0,
-            max_value=25.0,
-            value=8.0,
-            step=0.5,
-            format="%.1f%%",
-        )
-        discount_pct = st.slider(
-            "Discount rate (base)",
-            min_value=7.0,
-            max_value=14.0,
-            value=10.0,
-            step=0.5,
-            format="%.1f%%",
-        )
-        terminal_pct = st.slider(
-            "Terminal growth",
-            min_value=1.0,
-            max_value=4.0,
-            value=2.5,
-            step=0.1,
-            format="%.1f%%",
-        )
-        margin_pct = st.slider(
-            "Margin of safety (optional)",
-            min_value=0.0,
-            max_value=40.0,
-            value=20.0,
-            step=1.0,
-            format="%.0f%%",
-        )
+with st.form("analyze_form"):
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        ticker_input = st.text_input("Ticker Symbol", value="AAPL")
+    with col2:
+        st.write("")
         submitted = st.form_submit_button("Analyze")
 
 
@@ -128,13 +95,14 @@ def _build_recommendation(
     notes = notes[:2]
     notes_text = " and ".join(notes) if notes else "mixed fundamentals based on available data"
 
-    valuation_text = (
-        f"Valuation looks {valuation_signal.lower()} versus the DCF range." if dcf.get("enabled") else "DCF is unavailable due to missing FCF data."
-    )
+    # valuation_text = (
+    #     f"Valuation looks {valuation_signal.lower()} versus the DCF range." if dcf.get("enabled") else "DCF is unavailable due to missing FCF data."
+    # )
 
     summary = (
         f"Trend is {trend_signal.lower()} with momentum signaling {momentum_signal.lower()}. "
-        f"{valuation_text} Key fundamentals show {notes_text}."
+        # f"{valuation_text} "
+        f"Key fundamentals show {notes_text}."
     )
 
     reasons = []
@@ -170,15 +138,15 @@ def _build_recommendation(
     volatility = to_float(tech.get("volatility"))
     max_drawdown = to_float(tech.get("max_drawdown"))
 
-    if valuation_signal == "Overvalued":
-        risks.append("DCF suggests limited upside at current price")
+    # if valuation_signal == "Overvalued":
+    #     risks.append("DCF suggests limited upside at current price")
     if volatility is not None and volatility > 0.4:
         risks.append("Elevated volatility can pressure near-term returns")
     if max_drawdown is not None and max_drawdown < -0.3:
         risks.append("Recent drawdowns highlight downside risk")
 
-    if dcf.get("enabled") is False:
-        risks.append("DCF disabled due to missing FCF data")
+    # if dcf.get("enabled") is False:
+    #     risks.append("DCF disabled due to missing FCF data")
 
     fallback_risks = [
         "Macro conditions and rates can shift valuation",
@@ -244,108 +212,109 @@ if submitted:
                 elif rsi_value > 70:
                     momentum_signal = "Overbought"
 
-            base_growth = growth_pct / 100
-            base_discount = discount_pct / 100
-            base_terminal = terminal_pct / 100
-            margin_of_safety = margin_pct / 100
+            # base_growth = growth_pct / 100
+            # base_discount = discount_pct / 100
+            # base_terminal = terminal_pct / 100
+            # margin_of_safety = margin_pct / 100
 
-            growth_range = (0.0, 0.25)
-            discount_range = (0.07, 0.14)
-            terminal_range = (0.01, 0.04)
+            # growth_range = (0.0, 0.25)
+            # discount_range = (0.07, 0.14)
+            # terminal_range = (0.01, 0.04)
 
-            fcf = fundamentals.get("fcf")
-            shares = fundamentals.get("shares_outstanding")
+            # fcf = fundamentals.get("fcf")
+            # shares = fundamentals.get("shares_outstanding")
 
-            dcf_enabled = fcf is not None and shares is not None and shares > 0
+            # dcf_enabled = fcf is not None and shares is not None and shares > 0
+            dcf_enabled = False
             dcf_details: Dict[str, Any] = {
                 "enabled": dcf_enabled,
-                "base_growth": base_growth,
-                "base_discount": base_discount,
-                "base_terminal": base_terminal,
+                # "base_growth": base_growth,
+                # "base_discount": base_discount,
+                # "base_terminal": base_terminal,
             }
             sensitivity_table = None
 
-            if dcf_enabled:
-                base = dcf_valuation(
-                    fcf0=fcf,
-                    shares=shares,
-                    growth_rate=base_growth,
-                    discount_rate=base_discount,
-                    terminal_growth=base_terminal,
-                )
+            # if dcf_enabled:
+            #     base = dcf_valuation(
+            #         fcf0=fcf,
+            #         shares=shares,
+            #         growth_rate=base_growth,
+            #         discount_rate=base_discount,
+            #         terminal_growth=base_terminal,
+            #     )
 
-                bear_inputs = apply_scenario(
-                    base_growth,
-                    base_discount,
-                    base_terminal,
-                    growth_delta=-0.04,
-                    discount_delta=0.015,
-                    terminal_delta=-0.005,
-                    growth_range=growth_range,
-                    discount_range=discount_range,
-                    terminal_range=terminal_range,
-                )
-                bull_inputs = apply_scenario(
-                    base_growth,
-                    base_discount,
-                    base_terminal,
-                    growth_delta=0.04,
-                    discount_delta=-0.01,
-                    terminal_delta=0.005,
-                    growth_range=growth_range,
-                    discount_range=discount_range,
-                    terminal_range=terminal_range,
-                )
+            #     bear_inputs = apply_scenario(
+            #         base_growth,
+            #         base_discount,
+            #         base_terminal,
+            #         growth_delta=-0.04,
+            #         discount_delta=0.015,
+            #         terminal_delta=-0.005,
+            #         growth_range=growth_range,
+            #         discount_range=discount_range,
+            #         terminal_range=terminal_range,
+            #     )
+            #     bull_inputs = apply_scenario(
+            #         base_growth,
+            #         base_discount,
+            #         base_terminal,
+            #         growth_delta=0.04,
+            #         discount_delta=-0.01,
+            #         terminal_delta=0.005,
+            #         growth_range=growth_range,
+            #         discount_range=discount_range,
+            #         terminal_range=terminal_range,
+            #     )
 
-                bear = dcf_valuation(
-                    fcf0=fcf,
-                    shares=shares,
-                    growth_rate=bear_inputs["growth"],
-                    discount_rate=bear_inputs["discount"],
-                    terminal_growth=bear_inputs["terminal"],
-                )
-                bull = dcf_valuation(
-                    fcf0=fcf,
-                    shares=shares,
-                    growth_rate=bull_inputs["growth"],
-                    discount_rate=bull_inputs["discount"],
-                    terminal_growth=bull_inputs["terminal"],
-                )
+            #     bear = dcf_valuation(
+            #         fcf0=fcf,
+            #         shares=shares,
+            #         growth_rate=bear_inputs["growth"],
+            #         discount_rate=bear_inputs["discount"],
+            #         terminal_growth=bear_inputs["terminal"],
+            #     )
+            #     bull = dcf_valuation(
+            #         fcf0=fcf,
+            #         shares=shares,
+            #         growth_rate=bull_inputs["growth"],
+            #         discount_rate=bull_inputs["discount"],
+            #         terminal_growth=bull_inputs["terminal"],
+            #     )
 
-                discount_rates = _unique_clamped(
-                    [base_discount - 0.02, base_discount - 0.01, base_discount, base_discount + 0.01, base_discount + 0.02],
-                    *discount_range,
-                )
-                terminal_growths = _unique_clamped([0.01, 0.02, 0.025, 0.03, 0.04], *terminal_range)
-                sensitivity_table = build_sensitivity_table(
-                    fcf0=fcf,
-                    shares=shares,
-                    growth_rate=base_growth,
-                    discount_rates=discount_rates,
-                    terminal_growth_rates=terminal_growths,
-                )
+            #     discount_rates = _unique_clamped(
+            #         [base_discount - 0.02, base_discount - 0.01, base_discount, base_discount + 0.01, base_discount + 0.02],
+            #         *discount_range,
+            #     )
+            #     terminal_growths = _unique_clamped([0.01, 0.02, 0.025, 0.03, 0.04], *terminal_range)
+            #     sensitivity_table = build_sensitivity_table(
+            #         fcf0=fcf,
+            #         shares=shares,
+            #         growth_rate=base_growth,
+            #         discount_rates=discount_rates,
+            #         terminal_growth_rates=terminal_growths,
+            #     )
 
-                dcf_details.update(
-                    {
-                        "base_value": base["value_per_share"],
-                        "bear_value": bear["value_per_share"],
-                        "bull_value": bull["value_per_share"],
-                        "bear_inputs": bear_inputs,
-                        "bull_inputs": bull_inputs,
-                    }
-                )
+            #     dcf_details.update(
+            #         {
+            #             "base_value": base["value_per_share"],
+            #             "bear_value": bear["value_per_share"],
+            #             "bull_value": bull["value_per_share"],
+            #             "bear_inputs": bear_inputs,
+            #             "bull_inputs": bull_inputs,
+            #         }
+            #     )
 
             valuation_signal = "N/A"
-            if dcf_enabled and current_price is not None:
-                base_value = dcf_details.get("base_value")
-                bull_value = dcf_details.get("bull_value")
-                if _is_valid_number(base_value) and _is_valid_number(bull_value):
-                    if current_price < base_value * (1 - margin_of_safety):
-                        valuation_signal = "Undervalued"
-                    elif current_price > bull_value:
-                        valuation_signal = "Overvalued"
-                    else:
-                        valuation_signal = "Fair"
+            # if dcf_enabled and current_price is not None:
+            #     base_value = dcf_details.get("base_value")
+            #     bull_value = dcf_details.get("bull_value")
+            #     if _is_valid_number(base_value) and _is_valid_number(bull_value):
+            #         if current_price < base_value * (1 - margin_of_safety):
+            #             valuation_signal = "Undervalued"
+            #         elif current_price > bull_value:
+            #             valuation_signal = "Overvalued"
+            #         else:
+            #             valuation_signal = "Fair"
 
             recommendation = _build_recommendation(
                 trend_signal,
@@ -374,7 +343,7 @@ if submitted:
                     "momentum": momentum_signal,
                     "valuation": valuation_signal,
                 },
-                "margin_of_safety": margin_of_safety,
+                # "margin_of_safety": margin_of_safety,
             }
 
             analysis_result = {
@@ -438,59 +407,47 @@ if analysis_result:
     with fund_col:
         st.subheader("Fundamentals")
         fundamentals = results["fundamentals"]
-        fundamentals_table = pd.DataFrame(
-            [
-                ("Market Cap", format_currency_abbrev(fundamentals.get("market_cap"))),
-                ("Trailing P/E", format_number(fundamentals.get("trailing_pe"))),
-                ("Forward P/E", format_number(fundamentals.get("forward_pe"))),
-                ("P/S", format_number(fundamentals.get("price_to_sales"))),
-                ("Profit Margin", format_percent(fundamentals.get("profit_margin"))),
-                ("Revenue Growth", format_percent(fundamentals.get("revenue_growth"))),
-                ("Free Cash Flow", format_currency_abbrev(fundamentals.get("fcf"))),
-                ("FCF Margin", format_percent(fundamentals.get("fcf_margin"))),
-                ("Total Debt", format_currency_abbrev(fundamentals.get("total_debt"))),
-            ],
-            columns=["Metric", "Value"],
-        )
-        try:
-            st.dataframe(fundamentals_table, hide_index=True, use_container_width=True)
-        except TypeError:
-            try:
-                st.dataframe(fundamentals_table, hide_index=True)
-            except TypeError:
-                st.dataframe(fundamentals_table)
+        st.metric("Market Cap", format_currency_abbrev(fundamentals.get("market_cap")))
+        st.metric("Trailing P/E", format_number(fundamentals.get("trailing_pe")))
+        st.metric("Forward P/E", format_number(fundamentals.get("forward_pe")))
+        st.metric("P/S Ratio", format_number(fundamentals.get("price_to_sales")))
+        st.metric("Profit Margin", format_percent(fundamentals.get("profit_margin")))
+        st.metric("Revenue Growth", format_percent(fundamentals.get("revenue_growth")))
+        st.metric("Free Cash Flow", format_currency_abbrev(fundamentals.get("fcf")))
+        st.metric("FCF Margin", format_percent(fundamentals.get("fcf_margin")))
+        st.metric("Total Debt", format_currency_abbrev(fundamentals.get("total_debt")))
 
-    st.subheader("DCF Lite")
-    if results["dcf"].get("enabled"):
-        base_value = results["dcf"].get("base_value")
-        bear_value = results["dcf"].get("bear_value")
-        bull_value = results["dcf"].get("bull_value")
-        current_price = results.get("price")
+    # st.subheader("DCF Lite")
+    # if results["dcf"].get("enabled"):
+    #     base_value = results["dcf"].get("base_value")
+    #     bear_value = results["dcf"].get("bear_value")
+    #     bull_value = results["dcf"].get("bull_value")
+    #     current_price = results.get("price")
 
-        dcf_cols = st.columns(3)
-        dcf_cols[0].metric("Bear Value / Share", format_currency(bear_value))
-        dcf_cols[1].metric("Base Value / Share", format_currency(base_value))
-        dcf_cols[2].metric("Bull Value / Share", format_currency(bull_value))
+    #     dcf_cols = st.columns(3)
+    #     dcf_cols[0].metric("Bear Value / Share", format_currency(bear_value))
+    #     dcf_cols[1].metric("Base Value / Share", format_currency(base_value))
+    #     dcf_cols[2].metric("Bull Value / Share", format_currency(bull_value))
 
-        if current_price is not None and base_value is not None:
-            upside_base = safe_divide(base_value - current_price, current_price)
-            upside_bear = safe_divide(bear_value - current_price, current_price) if bear_value is not None else None
-            upside_bull = safe_divide(bull_value - current_price, current_price) if bull_value is not None else None
-            st.write(
-                f"Implied upside/downside vs current price: Bear {format_percent(upside_bear)}, Base {format_percent(upside_base)}, Bull {format_percent(upside_bull)}"
-            )
+    #     if current_price is not None and base_value is not None:
+    #         upside_base = safe_divide(base_value - current_price, current_price)
+    #         upside_bear = safe_divide(bear_value - current_price, current_price) if bear_value is not None else None
+    #         upside_bull = safe_divide(bull_value - current_price, current_price) if bull_value is not None else None
+    #         st.write(
+    #             f"Implied upside/downside vs current price: Bear {format_percent(upside_bear)}, Base {format_percent(upside_base)}, Bull {format_percent(upside_bull)}"
+    #         )
 
-        st.caption("DCF assumes no net debt adjustment or dilution in Phase 1.")
+    #     st.caption("DCF assumes no net debt adjustment or dilution in Phase 1.")
 
-        if sensitivity_table is not None:
-            st.markdown("**Sensitivity (Value per Share)**")
-            formatted_sensitivity_table = sensitivity_table.applymap(format_currency)
-            try:
-                st.dataframe(formatted_sensitivity_table, use_container_width=True)
-            except TypeError:
-                st.dataframe(formatted_sensitivity_table)
-    else:
-        st.warning("FCF unavailable; DCF disabled (Phase 1).")
+    #     if sensitivity_table is not None:
+    #         st.markdown("**Sensitivity (Value per Share)**")
+    #         formatted_sensitivity_table = sensitivity_table.applymap(format_currency)
+    #         try:
+    #             st.dataframe(formatted_sensitivity_table, use_container_width=True)
+    #         except TypeError:
+    #             st.dataframe(formatted_sensitivity_table)
+    # else:
+    #     st.warning("FCF unavailable; DCF disabled (Phase 1).")
 
     st.subheader("Recommendation")
     recommendation = results.get("recommendation", {})
