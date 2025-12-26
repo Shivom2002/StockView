@@ -1,4 +1,4 @@
-# Ticker Analyzer (Phase 1)
+# StockView
 
 A Streamlit app that generates a lightweight research report for a single stock ticker. Phase 1 uses `yfinance` for price history and basic fundamentals, plus a simplified DCF model.
 
