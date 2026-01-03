@@ -11,6 +11,8 @@ import streamlit as st
 from src.data import fetch_fundamentals, fetch_price_history
 # from src.dcf import apply_scenario, build_sensitivity_table, dcf_valuation
 from src.fundamentals import parse_fundamentals
+from src.gemini_summarizer import summarize_news
+from src.news import fetch_news_yfinance, filter_recent_news, pick_top_links
 from src.report import render_markdown
 from src.technicals import compute_indicators
 from src.utils import (
@@ -461,6 +463,74 @@ if analysis_result:
         st.markdown("**Risks / Watch items**")
         for item in recommendation.get("risks", []):
             st.write(f"- {item}")
+
+    st.subheader("Relevant News")
+    ticker = results.get("ticker")
+
+    # Fetch and filter news
+    all_news = fetch_news_yfinance(ticker)
+    recent_news = filter_recent_news(all_news, max_age_hours=72)
+    top_links = pick_top_links(recent_news, k=3)
+
+    if not recent_news:
+        st.info("No recent news found for this ticker in the last 3 days.")
+    else:
+        # Display top 3 links
+        st.markdown("**Recent Headlines**")
+        for item in top_links:
+            title = item.get("title", "")
+            link = item.get("link", "")
+            publisher = item.get("publisher", "Unknown")
+            published_at = item.get("published_at")
+
+            time_str = published_at.strftime("%b %d, %H:%M UTC") if published_at else "Unknown"
+            st.markdown(f"- [{title}]({link}) — *{publisher}, {time_str}*")
+
+        st.markdown("")  # Add spacing
+
+        # AI Summary section
+        st.markdown("**AI Summary**")
+
+        # Generate cache key based on article links to refresh when news changes
+        cache_key = "_".join([item.get("link", "")[:50] for item in recent_news[:5]])
+
+        # Try to generate summary
+        summary_data, error_msg = summarize_news(recent_news, ticker, max_items_for_context=10)
+
+        if summary_data:
+            # Display bullets
+            bullets = summary_data.get("bullets", [])
+            if bullets:
+                for bullet in bullets:
+                    st.write(f"- {bullet}")
+
+            # Display takeaway
+            takeaway = summary_data.get("takeaway", "")
+            if takeaway:
+                st.markdown("")  # Add spacing
+                st.markdown(f"**Overall Takeaway:** {takeaway}")
+
+            # Display watch items if available
+            watch_items = summary_data.get("watch_items", [])
+            if watch_items:
+                st.markdown("")  # Add spacing
+                st.markdown("**Watch Items:**")
+                for item in watch_items:
+                    st.write(f"- {item}")
+
+            # Show warning if there was a parsing issue
+            if error_msg:
+                st.caption(f"⚠️ {error_msg}")
+        else:
+            # Show error message
+            if "GEMINI_API_KEY" in error_msg:
+                st.info(
+                    "💡 To enable AI-powered news summarization, set the `GEMINI_API_KEY` environment variable. "
+                    "See README for instructions."
+                )
+            else:
+                st.warning(f"Could not generate AI summary: {error_msg}")
+                st.caption("Headlines are still available above.")
 
     st.subheader("Export")
     markdown_report = render_markdown(results)
