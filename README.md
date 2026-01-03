@@ -31,13 +31,14 @@ export GEMINI_API_KEY="your-api-key-here"
 3. (Optional) Customize the Gemini model:
 
 ```bash
-export GEMINI_MODEL="gemini-1.5-flash"  # Default: gemini-2.0-flash-exp
+export GEMINI_MODEL="gemini-1.5-flash"  # Default: gemini-2.5-flash
 ```
 
 **Available models:**
-- `gemini-2.0-flash-exp` (default) - Fast, experimental, good for summarization
+- `gemini-2.5-flash` (default) - Latest fast model, good for summarization
 - `gemini-1.5-flash` - Stable, fast, cost-effective
 - `gemini-1.5-pro` - More capable, higher quality, slower and more expensive
+- `gemini-2.0-flash-exp` - Experimental version
 
 **Note**: The app works without these keys — you'll still see news headlines and links, just without AI summaries.
 

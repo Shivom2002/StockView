@@ -51,7 +51,7 @@ def _get_gemini_model() -> str:
 
     Returns the model name to use.
     """
-    default_model = "gemini-2.0-flash-exp"
+    default_model = "gemini-2.5-flash"
     model = os.environ.get("GEMINI_MODEL", default_model)
     return model.strip() if model else default_model
 
