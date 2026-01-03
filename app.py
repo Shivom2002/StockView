@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 from src.data import fetch_fundamentals, fetch_price_history
 # from src.dcf import apply_scenario, build_sensitivity_table, dcf_valuation
 from src.fundamentals import parse_fundamentals
