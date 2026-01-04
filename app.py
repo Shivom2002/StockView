@@ -18,7 +18,7 @@ from src.fundamentals import parse_fundamentals
 from src.gemini_summarizer import summarize_news
 from src.news import fetch_news_yfinance, filter_recent_news, pick_top_links
 from src.report import render_markdown
-from src.technicals import compute_indicators
+from src.technicals import compute_indicators, compute_long_term_pullback_signals
 from src.utils import (
     as_of_timestamp,
     clamp,
@@ -30,9 +30,45 @@ from src.utils import (
     to_float,
 )
 
-st.set_page_config(page_title="StockView", layout="wide")
+st.set_page_config(page_title="StockView", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("<h1 style='text-align: center;'>StockView</h1>", unsafe_allow_html=True)
+
+# Sidebar controls for Long-Term Pullback strategy
+st.sidebar.header("Strategy Parameters")
+st.sidebar.markdown("**Long-Term Pullback-in-Trend**")
+pullback_band = st.sidebar.number_input(
+    "Pullback Band (%)",
+    min_value=0.0,
+    max_value=5.0,
+    value=0.5,
+    step=0.1,
+    help="Tolerance above EMA50 for pullback detection (default 0.5%)",
+) / 100  # Convert to decimal
+rsi_min = st.sidebar.number_input(
+    "RSI Min",
+    min_value=20,
+    max_value=60,
+    value=40,
+    step=5,
+    help="Minimum RSI for entry confirmation (default 40)",
+)
+rsi_max = st.sidebar.number_input(
+    "RSI Max",
+    min_value=40,
+    max_value=80,
+    value=55,
+    step=5,
+    help="Maximum RSI for entry confirmation (default 55)",
+)
+atr_k = st.sidebar.number_input(
+    "ATR Multiplier (Stop)",
+    min_value=1.0,
+    max_value=5.0,
+    value=2.0,
+    step=0.5,
+    help="ATR multiplier for stop loss calculation (default 2.0)",
+)
 
 with st.form("analyze_form"):
     col1, col2 = st.columns([4, 1])
@@ -184,6 +220,14 @@ if submitted:
             st.error("No price history found for this ticker. Please check the symbol and try again.")
         else:
             indicators = compute_indicators(history)
+
+            # Compute Long-Term Pullback strategy signals
+            strategy_df = compute_long_term_pullback_signals(
+                history,
+                pullback_band=pullback_band,
+                rsi_min=int(rsi_min),
+                rsi_max=int(rsi_max),
+            )
 
             close_series = history["Close"].dropna()
             current_price = _last_value(close_series)
@@ -357,6 +401,13 @@ if submitted:
                 "indicators": indicators,
                 "sensitivity": sensitivity_table,
                 "results": results,
+                "strategy_df": strategy_df,
+                "strategy_params": {
+                    "pullback_band": pullback_band,
+                    "rsi_min": rsi_min,
+                    "rsi_max": rsi_max,
+                    "atr_k": atr_k,
+                },
             }
             st.session_state["analysis_result"] = analysis_result
 
@@ -368,6 +419,8 @@ if analysis_result:
     history = analysis_result["history"]
     indicators = analysis_result["indicators"]
     sensitivity_table = analysis_result["sensitivity"]
+    strategy_df = analysis_result.get("strategy_df")
+    strategy_params = analysis_result.get("strategy_params", {})
 
     st.caption(f"Last updated: {results.get('timestamp')}")
 
@@ -388,17 +441,136 @@ if analysis_result:
 
     st.subheader("Price & Moving Averages")
     fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(history.index, history["Close"], label="Close", linewidth=1.5)
-    if indicators.get("sma20") is not None:
-        ax.plot(indicators["sma20"].index, indicators["sma20"], label="SMA 20")
-    if indicators.get("sma50") is not None:
-        ax.plot(indicators["sma50"].index, indicators["sma50"], label="SMA 50")
-    if indicators.get("sma200") is not None:
-        ax.plot(indicators["sma200"].index, indicators["sma200"], label="SMA 200")
+    ax.plot(history.index, history["Close"], label="Close", linewidth=1.5, color="black")
+
+    # Plot EMAs from strategy if available, otherwise fall back to SMAs
+    if strategy_df is not None:
+        ax.plot(strategy_df.index, strategy_df["ema20"], label="EMA 20", linewidth=1, alpha=0.7)
+        ax.plot(strategy_df.index, strategy_df["ema50"], label="EMA 50", linewidth=1, alpha=0.7)
+        ax.plot(strategy_df.index, strategy_df["ema200"], label="EMA 200", linewidth=1, alpha=0.7)
+
+        # Mark entry and exit points (last 2 only)
+        entry_dates = strategy_df[strategy_df["ltp_entry"]].index
+        entry_prices = strategy_df.loc[entry_dates, "Close"]
+        if not entry_dates.empty:
+            # Show only last 2 entries
+            last_2_entry_dates = entry_dates[-2:]
+            last_2_entry_prices = entry_prices[-2:]
+            ax.scatter(last_2_entry_dates, last_2_entry_prices, marker="^", color="green", s=100, label="Entry", zorder=5)
+
+        exit_dates = strategy_df[strategy_df["ltp_exit"] & (strategy_df["ltp_position"].shift(1) == 1)].index
+        exit_prices = strategy_df.loc[exit_dates, "Close"]
+        if not exit_dates.empty:
+            # Show only last 2 exits
+            last_2_exit_dates = exit_dates[-2:]
+            last_2_exit_prices = exit_prices[-2:]
+            ax.scatter(last_2_exit_dates, last_2_exit_prices, marker="v", color="red", s=100, label="Exit", zorder=5)
+    else:
+        # Fallback to SMAs
+        if indicators.get("sma20") is not None:
+            ax.plot(indicators["sma20"].index, indicators["sma20"], label="SMA 20")
+        if indicators.get("sma50") is not None:
+            ax.plot(indicators["sma50"].index, indicators["sma50"], label="SMA 50")
+        if indicators.get("sma200") is not None:
+            ax.plot(indicators["sma200"].index, indicators["sma200"], label="SMA 200")
+
     ax.set_ylabel("Price")
     ax.legend(loc="upper left")
     ax.grid(alpha=0.2)
     st.pyplot(fig, clear_figure=True)
+
+    # Long-Term Pullback-in-Trend Strategy Section
+    if strategy_df is not None and not strategy_df.empty:
+        try:
+            st.subheader("Strategy: Long-Term Pullback-in-Trend")
+
+            # Get latest status
+            latest_row = strategy_df.iloc[-1]
+            trend_ok = bool(latest_row["ltp_trend_ok"])
+            pullback_ok = bool(latest_row["ltp_pullback_ok"])
+            rsi_ok = bool(latest_row["ltp_rsi_ok"])
+            entry_signal_today = bool(latest_row["ltp_entry"])
+            in_position = bool(latest_row["ltp_position"] == 1)
+
+            # Display current status
+            status_cols = st.columns(5)
+            status_cols[0].metric("Trend OK", "Yes" if trend_ok else "No")
+            status_cols[1].metric("Pullback OK", "Yes" if pullback_ok else "No")
+            status_cols[2].metric("RSI OK", "Yes" if rsi_ok else "No")
+            status_cols[3].metric("Entry Signal", "Yes" if entry_signal_today else "No")
+            status_cols[4].metric("In Position", "Yes" if in_position else "No")
+
+            # If in position, show entry details
+            if in_position:
+                # Find the most recent entry
+                entries = strategy_df[strategy_df["ltp_entry"]].copy()
+                if not entries.empty:
+                    latest_entry = entries.iloc[-1]
+                    entry_date = entries.index[-1]
+                    entry_price = float(latest_entry["Close"])
+                    entry_atr = float(latest_entry["atr14"])
+
+                    # Calculate stop and target
+                    atr_k_value = float(strategy_params.get("atr_k", 2.0))
+                    stop_price = entry_price - atr_k_value * entry_atr
+                    target_price = entry_price + 3 * entry_atr
+
+                    # Calculate R multiple
+                    risk_per_share = entry_price - stop_price
+                    reward_per_share = target_price - entry_price
+                    r_multiple = safe_divide(reward_per_share, risk_per_share)
+
+                    st.markdown("**Current Position Details:**")
+                    pos_cols = st.columns(4)
+                    pos_cols[0].metric("Entry Date", entry_date.strftime("%Y-%m-%d"))
+                    pos_cols[1].metric("Entry Price", format_currency(entry_price))
+                    pos_cols[2].metric("Suggested Stop", format_currency(stop_price))
+                    pos_cols[3].metric("Target (3R)", format_currency(target_price))
+
+                    st.markdown(
+                        f"**Risk Metrics:** Stop = Entry - {atr_k_value:.1f}x ATR, "
+                        f"Target = Entry + 3x ATR, R:R = {format_number(r_multiple)}"
+                    )
+                    ema200_val = float(latest_row["ema200"])
+                    st.caption(f"Exit condition: Close < EMA200 (currently ${ema200_val:.2f})")
+            else:
+                st.info("No active position. Waiting for entry signal.")
+
+            # Show last 2 entry/exit events
+            st.markdown("**Recent Entry/Exit Events (Last 2):**")
+            events = []
+
+            # Collect all entry events
+            entries = strategy_df[strategy_df["ltp_entry"]].copy()
+            for idx in entries.index:
+                events.append({
+                    "Date": idx.strftime("%Y-%m-%d"),
+                    "Event": "Entry",
+                    "Price": format_currency(entries.loc[idx, "Close"]),
+                    "RSI": format_number(entries.loc[idx, "rsi14"]),
+                    "EMA20": format_currency(entries.loc[idx, "ema20"]),
+                })
+
+            # Collect all exit events (where ltp_exit is True and previous position was 1)
+            exits = strategy_df[strategy_df["ltp_exit"] & (strategy_df["ltp_position"].shift(1) == 1)].copy()
+            for idx in exits.index:
+                events.append({
+                    "Date": idx.strftime("%Y-%m-%d"),
+                    "Event": "Exit",
+                    "Price": format_currency(exits.loc[idx, "Close"]),
+                    "RSI": format_number(exits.loc[idx, "rsi14"]),
+                    "EMA20": format_currency(exits.loc[idx, "ema20"]),
+                })
+
+            if events:
+                # Sort by date descending and take last 2
+                events_df = pd.DataFrame(events)
+                events_df = events_df.sort_values("Date", ascending=False).head(2).reset_index(drop=True)
+                st.dataframe(events_df)
+            else:
+                st.info("No entry/exit events found in the selected timeframe.")
+        except Exception as e:
+            st.warning(f"Strategy section error: {str(e)}")
 
     tech_col, fund_col = st.columns([1, 1])
     with tech_col:
@@ -522,9 +694,10 @@ if analysis_result:
                 for item in watch_items:
                     st.write(f"- {item}")
 
-            # Show warning if there was a parsing issue
-            if error_msg:
-                st.caption(f"⚠️ {error_msg}")
+            # Show info if there was a parsing issue (only if takeaway indicates partial parse)
+            if error_msg and "parsing" in error_msg.lower():
+                # Only show parsing errors, not other transient issues
+                st.caption("ℹ️ Summary generated with partial parsing. Refresh page if content appears incomplete.")
         else:
             # Show error message
             if "GEMINI_API_KEY" in error_msg:

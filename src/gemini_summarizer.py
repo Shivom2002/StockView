@@ -161,6 +161,27 @@ def _parse_gemini_response(response_text: str) -> Tuple[Optional[Dict[str, Any]]
         if text.endswith("```"):
             text = text[:-3].strip()
 
+        # Try to fix common JSON truncation issues
+        if not text.endswith('}'):
+            # JSON might be truncated - try to close it
+            # Count opening and closing braces/brackets
+            open_braces = text.count('{')
+            close_braces = text.count('}')
+            open_brackets = text.count('[')
+            close_brackets = text.count(']')
+
+            # Add missing closing quotes if needed
+            if text.count('"') % 2 != 0:
+                text += '"'
+
+            # Close arrays
+            for _ in range(open_brackets - close_brackets):
+                text += ']'
+
+            # Close objects
+            for _ in range(open_braces - close_braces):
+                text += '}'
+
         # Parse JSON
         data = json.loads(text)
 
@@ -231,7 +252,7 @@ def summarize_news(
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.3,  # Lower temperature for more factual output
-                    max_output_tokens=2000,  # Increased to avoid truncation
+                    max_output_tokens=4096,  # Increased to avoid truncation
                     response_modalities=["TEXT"],
                     response_mime_type="application/json",  # Request JSON output
                 ),
@@ -243,7 +264,7 @@ def summarize_news(
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.3,
-                    max_output_tokens=2000,
+                    max_output_tokens=4096,
                     response_modalities=["TEXT"],
                 ),
             )
@@ -258,15 +279,34 @@ def summarize_news(
         parsed, parse_error = _parse_gemini_response(response_text)
         if parsed is None:
             # If parsing failed, try to extract at least some useful info from raw text
-            # Split into sentences and use first few as bullets
-            sentences = [s.strip() for s in response_text.split('.') if s.strip()]
-            bullets = sentences[:4] if sentences else ["Unable to parse AI response"]
+            # Clean up the text and split into sentences
+            clean_text = response_text.replace('\n', ' ').strip()
+
+            # Try to extract any complete sentences (ending with period)
+            sentences = []
+            for s in clean_text.split('.'):
+                s = s.strip()
+                if s and len(s) > 10:  # Only include substantial sentences
+                    # Remove any incomplete quote marks or brackets
+                    s = s.replace('"', '').replace('[', '').replace(']', '').replace('{', '').replace('}', '').strip()
+                    if s:
+                        sentences.append(s + '.')
+
+            # If no complete sentences, try splitting by common delimiters
+            if not sentences:
+                for delimiter in ['\n', ',', ';']:
+                    parts = [p.strip() for p in clean_text.split(delimiter) if p.strip() and len(p.strip()) > 10]
+                    if parts:
+                        sentences = parts[:4]
+                        break
+
+            bullets = sentences[:4] if sentences else ["AI summary temporarily unavailable due to parsing error."]
 
             return {
                 "bullets": bullets,
-                "takeaway": "AI response could not be parsed into structured format. Showing raw summary above.",
+                "takeaway": "Summary parsing incomplete. Please refresh for updated results.",
                 "watch_items": [],
-            }, f"JSON parsing failed: {parse_error}. Raw response length: {len(response_text)} chars"
+            }, f"JSON parsing failed: {parse_error}"
 
         return parsed, None
 
