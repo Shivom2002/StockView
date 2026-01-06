@@ -34,6 +34,217 @@ st.set_page_config(page_title="StockView", layout="wide", initial_sidebar_state=
 
 st.markdown("<h1 style='text-align: center;'>StockView</h1>", unsafe_allow_html=True)
 
+# Custom CSS for styling
+st.markdown("""
+<style>
+    /* Main app background */
+    .stApp {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    /* Main content area background */
+    .main .block-container {
+        background-color: rgba(255, 255, 255, 0.95);
+        padding: 2rem 3rem;
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+    }
+
+    /* Title styling */
+    h1 {
+        color: #1a1a2e;
+        font-weight: 700;
+        margin-bottom: 2rem;
+    }
+
+    /* Form styling - remove border and make transparent */
+    .stForm {
+        background-color: transparent;
+        border: none !important;
+        padding: 0;
+    }
+
+    /* Remove form border container */
+    [data-testid="stForm"] {
+        border: none !important;
+        background-color: transparent !important;
+    }
+
+    /* Text input styling */
+    .stTextInput > div > div > input {
+        background-color: #ffffff;
+        border: 2px solid #e0e0e0;
+        border-radius: 50px;
+        padding: 12px 24px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        height: 48px;
+    }
+
+    .stTextInput > div > div > input:focus {
+        border-color: #667eea;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        outline: none;
+    }
+
+    /* Remove label spacing for text input */
+    .stTextInput > label {
+        display: none;
+    }
+
+    .stTextInput {
+        margin-bottom: 0px;
+    }
+
+    /* Button styling */
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 12px 32px;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        width: 100%;
+        height: 48px;
+        margin-top: 0px;
+    }
+
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Form button vertical alignment - force same height */
+    .stForm .stButton {
+        margin-top: 0px;
+        padding-top: 0px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Align columns in form */
+    .stForm [data-testid="column"] {
+        display: flex;
+        align-items: center;
+    }
+
+    /* Tab container styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 24px;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    /* Individual tab styling */
+    .stTabs [data-baseweb="tab"] {
+        height: 60px;
+        padding: 0px 30px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        font-size: 20px;
+        font-weight: 600;
+        color: #262730;
+        border: 2px solid #e0e0e0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+
+    /* Tab hover effect */
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #e8eaf0;
+        border-color: #4CAF50;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    /* Active/selected tab styling */
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: #667eea;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Tab panel (content area) styling */
+    .stTabs [data-baseweb="tab-panel"] {
+        padding-top: 20px;
+    }
+
+    /* Metric cards */
+    .stMetric {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    /* News tab typography improvements */
+    .stTabs [data-baseweb="tab-panel"] h2 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .stTabs [data-baseweb="tab-panel"] h3 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    /* News headlines styling */
+    .stTabs [data-baseweb="tab-panel"] a {
+        font-size: 17px;
+        line-height: 1.6;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .stTabs [data-baseweb="tab-panel"] a:hover {
+        color: #764ba2;
+        text-decoration: underline;
+    }
+
+    /* News metadata (publisher, time) */
+    .stTabs [data-baseweb="tab-panel"] em {
+        font-size: 14px;
+        color: #718096;
+    }
+
+    /* Bullet points styling */
+    .stTabs [data-baseweb="tab-panel"] li {
+        font-size: 17px;
+        line-height: 1.8;
+        color: #2d3748;
+        margin-bottom: 0.75rem;
+    }
+
+    /* General text in tabs */
+    .stTabs [data-baseweb="tab-panel"] p {
+        font-size: 16px;
+        line-height: 1.7;
+        color: #2d3748;
+    }
+
+    /* Bold text emphasis */
+    .stTabs [data-baseweb="tab-panel"] strong {
+        color: #1a1a2e;
+        font-weight: 600;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Sidebar controls for Long-Term Pullback strategy
 st.sidebar.header("Strategy Parameters")
 st.sidebar.markdown("**Long-Term Pullback-in-Trend**")
@@ -73,9 +284,8 @@ atr_k = st.sidebar.number_input(
 with st.form("analyze_form"):
     col1, col2 = st.columns([4, 1])
     with col1:
-        ticker_input = st.text_input("Ticker Symbol", value="AAPL")
+        ticker_input = st.text_input("", placeholder="Enter Ticker")
     with col2:
-        st.write("")
         submitted = st.form_submit_button("Analyze")
 
 
@@ -220,14 +430,6 @@ if submitted:
             st.error("No price history found for this ticker. Please check the symbol and try again.")
         else:
             indicators = compute_indicators(history)
-
-            # Compute Long-Term Pullback strategy signals
-            strategy_df = compute_long_term_pullback_signals(
-                history,
-                pullback_band=pullback_band,
-                rsi_min=int(rsi_min),
-                rsi_max=int(rsi_max),
-            )
 
             close_series = history["Close"].dropna()
             current_price = _last_value(close_series)
@@ -401,13 +603,6 @@ if submitted:
                 "indicators": indicators,
                 "sensitivity": sensitivity_table,
                 "results": results,
-                "strategy_df": strategy_df,
-                "strategy_params": {
-                    "pullback_band": pullback_band,
-                    "rsi_min": rsi_min,
-                    "rsi_max": rsi_max,
-                    "atr_k": atr_k,
-                },
             }
             st.session_state["analysis_result"] = analysis_result
 
@@ -419,70 +614,163 @@ if analysis_result:
     history = analysis_result["history"]
     indicators = analysis_result["indicators"]
     sensitivity_table = analysis_result["sensitivity"]
-    strategy_df = analysis_result.get("strategy_df")
-    strategy_params = analysis_result.get("strategy_params", {})
 
     st.caption(f"Last updated: {results.get('timestamp')}")
 
-    snapshot_cols = st.columns(4)
-    snapshot_cols[0].metric(
-        "Current Price",
-        format_currency(results.get("price")),
-        format_percent(results.get("price_change_pct")),
-    )
-    snapshot_cols[1].metric("Market Cap", format_currency_abbrev(results["fundamentals"].get("market_cap")))
-    snapshot_cols[2].metric("Trailing P/E", format_number(results["fundamentals"].get("trailing_pe")))
-    snapshot_cols[3].metric("Forward P/E", format_number(results["fundamentals"].get("forward_pe")))
+    # Create tabs for different sections
+    tab1, tab2, tab3 = st.tabs(["📈 Stock", "📰 News", "📊 Strategy"])
 
-    signal_cols = st.columns(3)
-    signal_cols[0].markdown(f"**Trend:** {results['signals']['trend']}")
-    signal_cols[1].markdown(f"**Momentum:** {results['signals']['momentum']}")
-    signal_cols[2].markdown(f"**Valuation:** {results['signals']['valuation']}")
+    # Tab 1: Stock Analysis (Fundamentals + Technicals + Chart)
+    with tab1:
+        snapshot_cols = st.columns(4)
+        snapshot_cols[0].metric(
+            "Current Price",
+            format_currency(results.get("price")),
+            format_percent(results.get("price_change_pct")),
+        )
+        snapshot_cols[1].metric("Market Cap", format_currency_abbrev(results["fundamentals"].get("market_cap")))
+        snapshot_cols[2].metric("Trailing P/E", format_number(results["fundamentals"].get("trailing_pe")))
+        snapshot_cols[3].metric("Forward P/E", format_number(results["fundamentals"].get("forward_pe")))
 
-    st.subheader("Price & Moving Averages")
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(history.index, history["Close"], label="Close", linewidth=1.5, color="black")
+        signal_cols = st.columns(3)
+        signal_cols[0].markdown(f"**Trend:** {results['signals']['trend']}")
+        signal_cols[1].markdown(f"**Momentum:** {results['signals']['momentum']}")
+        signal_cols[2].markdown(f"**Valuation:** {results['signals']['valuation']}")
 
-    # Plot EMAs from strategy if available, otherwise fall back to SMAs
-    if strategy_df is not None:
-        ax.plot(strategy_df.index, strategy_df["ema20"], label="EMA 20", linewidth=1, alpha=0.7)
-        ax.plot(strategy_df.index, strategy_df["ema50"], label="EMA 50", linewidth=1, alpha=0.7)
-        ax.plot(strategy_df.index, strategy_df["ema200"], label="EMA 200", linewidth=1, alpha=0.7)
+        st.subheader("Price & Moving Averages")
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.plot(history.index, history["Close"], label="Close", linewidth=1.5, color="black")
 
-        # Mark entry and exit points (last 2 only)
-        entry_dates = strategy_df[strategy_df["ltp_entry"]].index
-        entry_prices = strategy_df.loc[entry_dates, "Close"]
-        if not entry_dates.empty:
-            # Show only last 2 entries
-            last_2_entry_dates = entry_dates[-2:]
-            last_2_entry_prices = entry_prices[-2:]
-            ax.scatter(last_2_entry_dates, last_2_entry_prices, marker="^", color="green", s=100, label="Entry", zorder=5)
-
-        exit_dates = strategy_df[strategy_df["ltp_exit"] & (strategy_df["ltp_position"].shift(1) == 1)].index
-        exit_prices = strategy_df.loc[exit_dates, "Close"]
-        if not exit_dates.empty:
-            # Show only last 2 exits
-            last_2_exit_dates = exit_dates[-2:]
-            last_2_exit_prices = exit_prices[-2:]
-            ax.scatter(last_2_exit_dates, last_2_exit_prices, marker="v", color="red", s=100, label="Exit", zorder=5)
-    else:
-        # Fallback to SMAs
+        # Plot SMAs
         if indicators.get("sma20") is not None:
-            ax.plot(indicators["sma20"].index, indicators["sma20"], label="SMA 20")
+            ax.plot(indicators["sma20"].index, indicators["sma20"], label="SMA 20", alpha=0.7)
         if indicators.get("sma50") is not None:
-            ax.plot(indicators["sma50"].index, indicators["sma50"], label="SMA 50")
+            ax.plot(indicators["sma50"].index, indicators["sma50"], label="SMA 50", alpha=0.7)
         if indicators.get("sma200") is not None:
-            ax.plot(indicators["sma200"].index, indicators["sma200"], label="SMA 200")
+            ax.plot(indicators["sma200"].index, indicators["sma200"], label="SMA 200", alpha=0.7)
 
-    ax.set_ylabel("Price")
-    ax.legend(loc="upper left")
-    ax.grid(alpha=0.2)
-    st.pyplot(fig, clear_figure=True)
+        ax.set_ylabel("Price")
+        ax.legend(loc="upper left")
+        ax.grid(alpha=0.2)
+        st.pyplot(fig, clear_figure=True)
 
-    # Long-Term Pullback-in-Trend Strategy Section
-    if strategy_df is not None and not strategy_df.empty:
+        tech_col, fund_col = st.columns([1, 1])
+        with tech_col:
+            st.subheader("Technicals")
+            rsi_value = results["technicals"].get("rsi")
+            rsi_comment = "RSI measures momentum; values below 30 suggest oversold, above 70 suggest overbought."
+            st.metric("RSI (14)", format_number(rsi_value))
+            st.caption(rsi_comment)
+            st.metric("Annualized Volatility", format_percent(results["technicals"].get("volatility")))
+            st.metric("1Y Max Drawdown", format_percent(results["technicals"].get("max_drawdown")))
+
+        with fund_col:
+            st.subheader("Fundamentals")
+            fundamentals = results["fundamentals"]
+            st.metric("Market Cap", format_currency_abbrev(fundamentals.get("market_cap")))
+            st.metric("Trailing P/E", format_number(fundamentals.get("trailing_pe")))
+            st.metric("Forward P/E", format_number(fundamentals.get("forward_pe")))
+            st.metric("P/S Ratio", format_number(fundamentals.get("price_to_sales")))
+            st.metric("Profit Margin", format_percent(fundamentals.get("profit_margin")))
+            st.metric("Revenue Growth", format_percent(fundamentals.get("revenue_growth")))
+            st.metric("Free Cash Flow", format_currency_abbrev(fundamentals.get("fcf")))
+            st.metric("FCF Margin", format_percent(fundamentals.get("fcf_margin")))
+            st.metric("Total Debt", format_currency_abbrev(fundamentals.get("total_debt")))
+
+        st.subheader("Recommendation")
+        recommendation = results.get("recommendation", {})
+        st.write(recommendation.get("summary", "N/A"))
+        reasons_col, risks_col = st.columns(2)
+        with reasons_col:
+            st.markdown("**Reasons**")
+            for item in recommendation.get("reasons", []):
+                st.write(f"- {item}")
+        with risks_col:
+            st.markdown("**Risks / Watch items**")
+            for item in recommendation.get("risks", []):
+                st.write(f"- {item}")
+
+    # Tab 2: News & AI Summary
+    with tab2:
+        ticker = results.get("ticker")
+
+        # Fetch and filter news
+        all_news = fetch_news_yfinance(ticker)
+        recent_news = filter_recent_news(all_news, max_age_hours=72)
+        top_links = pick_top_links(recent_news, k=5)
+
+        if not recent_news:
+            st.info("No recent news found for this ticker in the last 3 days.")
+        else:
+            # Display top 5 articles with summaries
+            st.subheader("Recent Headlines")
+            for item in top_links:
+                title = item.get("title", "")
+                link = item.get("link", "")
+                publisher = item.get("publisher", "Unknown")
+                published_at = item.get("published_at")
+                summary = item.get("summary", "")
+
+                time_str = published_at.strftime("%b %d, %H:%M UTC") if published_at else "Unknown"
+
+                # Article card with title, metadata, and summary
+                st.markdown(f"**[{title}]({link})**")
+                st.markdown(f"*{publisher} • {time_str}*")
+                if summary:
+                    st.markdown(f"{summary}")
+                st.markdown("---")  # Divider between articles
+
+            # AI Summary section
+            st.subheader("AI Summary")
+
+            # Try to generate summary with more context (15 articles)
+            summary_data, error_msg = summarize_news(recent_news, ticker, max_items_for_context=15)
+
+            if summary_data:
+                # Display bullets
+                bullets = summary_data.get("bullets", [])
+                if bullets:
+                    for bullet in bullets:
+                        st.write(f"- {bullet}")
+
+                # Display takeaway
+                takeaway = summary_data.get("takeaway", "")
+                if takeaway:
+                    st.markdown("")  # Add spacing
+                    st.markdown(f"**Overall Takeaway:** {takeaway}")
+
+                # Display watch items if available
+                watch_items = summary_data.get("watch_items", [])
+                if watch_items:
+                    st.markdown("")  # Add spacing
+                    st.markdown("**Watch Items:**")
+                    for item in watch_items:
+                        st.write(f"- {item}")
+
+                # Show info if there was a parsing issue
+                if error_msg and "parsing" in error_msg.lower():
+                    st.caption("ℹ️ Summary generated with partial parsing. Refresh page if content appears incomplete.")
+            else:
+                # Show error message
+                if "GEMINI_API_KEY" in error_msg:
+                    st.info(
+                        "💡 To enable AI-powered news summarization, set the `GEMINI_API_KEY` environment variable. "
+                        "See README for instructions."
+                    )
+                else:
+                    st.warning(f"Could not generate AI summary: {error_msg}")
+                    st.caption("Headlines are still available above.")
+
+    # Tab 3: Strategy Analysis
+    with tab3:
         try:
-            st.subheader("Strategy: Long-Term Pullback-in-Trend")
+            # Compute strategy signals on demand
+            strategy_df = compute_long_term_pullback_signals(
+                history,
+                pullback_band=pullback_band,
+                rsi_min=int(rsi_min),
+                rsi_max=int(rsi_max),
+            )
 
             # Get latest status
             latest_row = strategy_df.iloc[-1]
@@ -493,6 +781,7 @@ if analysis_result:
             in_position = bool(latest_row["ltp_position"] == 1)
 
             # Display current status
+            st.subheader("Current Status")
             status_cols = st.columns(5)
             status_cols[0].metric("Trend OK", "Yes" if trend_ok else "No")
             status_cols[1].metric("Pullback OK", "Yes" if pullback_ok else "No")
@@ -511,7 +800,7 @@ if analysis_result:
                     entry_atr = float(latest_entry["atr14"])
 
                     # Calculate stop and target
-                    atr_k_value = float(strategy_params.get("atr_k", 2.0))
+                    atr_k_value = float(atr_k)
                     stop_price = entry_price - atr_k_value * entry_atr
                     target_price = entry_price + 3 * entry_atr
 
@@ -520,7 +809,7 @@ if analysis_result:
                     reward_per_share = target_price - entry_price
                     r_multiple = safe_divide(reward_per_share, risk_per_share)
 
-                    st.markdown("**Current Position Details:**")
+                    st.subheader("Current Position Details")
                     pos_cols = st.columns(4)
                     pos_cols[0].metric("Entry Date", entry_date.strftime("%Y-%m-%d"))
                     pos_cols[1].metric("Entry Price", format_currency(entry_price))
@@ -536,8 +825,38 @@ if analysis_result:
             else:
                 st.info("No active position. Waiting for entry signal.")
 
+            # Strategy chart with EMAs and entry/exit markers
+            st.subheader("Strategy Chart")
+            fig_strategy, ax_strategy = plt.subplots(figsize=(10, 4))
+            ax_strategy.plot(history.index, history["Close"], label="Close", linewidth=1.5, color="black")
+
+            # Plot EMAs
+            ax_strategy.plot(strategy_df.index, strategy_df["ema20"], label="EMA 20", linewidth=1, alpha=0.7)
+            ax_strategy.plot(strategy_df.index, strategy_df["ema50"], label="EMA 50", linewidth=1, alpha=0.7)
+            ax_strategy.plot(strategy_df.index, strategy_df["ema200"], label="EMA 200", linewidth=1, alpha=0.7)
+
+            # Mark entry and exit points (last 2 only)
+            entry_dates = strategy_df[strategy_df["ltp_entry"]].index
+            entry_prices = strategy_df.loc[entry_dates, "Close"]
+            if not entry_dates.empty:
+                last_2_entry_dates = entry_dates[-2:]
+                last_2_entry_prices = entry_prices[-2:]
+                ax_strategy.scatter(last_2_entry_dates, last_2_entry_prices, marker="^", color="green", s=100, label="Entry", zorder=5)
+
+            exit_dates = strategy_df[strategy_df["ltp_exit"] & (strategy_df["ltp_position"].shift(1) == 1)].index
+            exit_prices = strategy_df.loc[exit_dates, "Close"]
+            if not exit_dates.empty:
+                last_2_exit_dates = exit_dates[-2:]
+                last_2_exit_prices = exit_prices[-2:]
+                ax_strategy.scatter(last_2_exit_dates, last_2_exit_prices, marker="v", color="red", s=100, label="Exit", zorder=5)
+
+            ax_strategy.set_ylabel("Price")
+            ax_strategy.legend(loc="upper left")
+            ax_strategy.grid(alpha=0.2)
+            st.pyplot(fig_strategy, clear_figure=True)
+
             # Show last 2 entry/exit events
-            st.markdown("**Recent Entry/Exit Events (Last 2):**")
+            st.subheader("Recent Entry/Exit Events")
             events = []
 
             # Collect all entry events
@@ -572,29 +891,6 @@ if analysis_result:
         except Exception as e:
             st.warning(f"Strategy section error: {str(e)}")
 
-    tech_col, fund_col = st.columns([1, 1])
-    with tech_col:
-        st.subheader("Technicals")
-        rsi_value = results["technicals"].get("rsi")
-        rsi_comment = "RSI measures momentum; values below 30 suggest oversold, above 70 suggest overbought."
-        st.metric("RSI (14)", format_number(rsi_value))
-        st.caption(rsi_comment)
-        st.metric("Annualized Volatility", format_percent(results["technicals"].get("volatility")))
-        st.metric("1Y Max Drawdown", format_percent(results["technicals"].get("max_drawdown")))
-
-    with fund_col:
-        st.subheader("Fundamentals")
-        fundamentals = results["fundamentals"]
-        st.metric("Market Cap", format_currency_abbrev(fundamentals.get("market_cap")))
-        st.metric("Trailing P/E", format_number(fundamentals.get("trailing_pe")))
-        st.metric("Forward P/E", format_number(fundamentals.get("forward_pe")))
-        st.metric("P/S Ratio", format_number(fundamentals.get("price_to_sales")))
-        st.metric("Profit Margin", format_percent(fundamentals.get("profit_margin")))
-        st.metric("Revenue Growth", format_percent(fundamentals.get("revenue_growth")))
-        st.metric("Free Cash Flow", format_currency_abbrev(fundamentals.get("fcf")))
-        st.metric("FCF Margin", format_percent(fundamentals.get("fcf_margin")))
-        st.metric("Total Debt", format_currency_abbrev(fundamentals.get("total_debt")))
-
     # st.subheader("DCF Lite")
     # if results["dcf"].get("enabled"):
     #     base_value = results["dcf"].get("base_value")
@@ -626,88 +922,6 @@ if analysis_result:
     #             st.dataframe(formatted_sensitivity_table)
     # else:
     #     st.warning("FCF unavailable; DCF disabled (Phase 1).")
-
-    st.subheader("Recommendation")
-    recommendation = results.get("recommendation", {})
-    st.write(recommendation.get("summary", "N/A"))
-    reasons_col, risks_col = st.columns(2)
-    with reasons_col:
-        st.markdown("**Reasons**")
-        for item in recommendation.get("reasons", []):
-            st.write(f"- {item}")
-    with risks_col:
-        st.markdown("**Risks / Watch items**")
-        for item in recommendation.get("risks", []):
-            st.write(f"- {item}")
-
-    st.subheader("Relevant News")
-    ticker = results.get("ticker")
-
-    # Fetch and filter news
-    all_news = fetch_news_yfinance(ticker)
-    recent_news = filter_recent_news(all_news, max_age_hours=72)
-    top_links = pick_top_links(recent_news, k=3)
-
-    if not recent_news:
-        st.info("No recent news found for this ticker in the last 3 days.")
-    else:
-        # Display top 3 links
-        st.markdown("**Recent Headlines**")
-        for item in top_links:
-            title = item.get("title", "")
-            link = item.get("link", "")
-            publisher = item.get("publisher", "Unknown")
-            published_at = item.get("published_at")
-
-            time_str = published_at.strftime("%b %d, %H:%M UTC") if published_at else "Unknown"
-            st.markdown(f"- [{title}]({link}) — *{publisher}, {time_str}*")
-
-        st.markdown("")  # Add spacing
-
-        # AI Summary section
-        st.markdown("**AI Summary**")
-
-        # Generate cache key based on article links to refresh when news changes
-        cache_key = "_".join([item.get("link", "")[:50] for item in recent_news[:5]])
-
-        # Try to generate summary
-        summary_data, error_msg = summarize_news(recent_news, ticker, max_items_for_context=10)
-
-        if summary_data:
-            # Display bullets
-            bullets = summary_data.get("bullets", [])
-            if bullets:
-                for bullet in bullets:
-                    st.write(f"- {bullet}")
-
-            # Display takeaway
-            takeaway = summary_data.get("takeaway", "")
-            if takeaway:
-                st.markdown("")  # Add spacing
-                st.markdown(f"**Overall Takeaway:** {takeaway}")
-
-            # Display watch items if available
-            watch_items = summary_data.get("watch_items", [])
-            if watch_items:
-                st.markdown("")  # Add spacing
-                st.markdown("**Watch Items:**")
-                for item in watch_items:
-                    st.write(f"- {item}")
-
-            # Show info if there was a parsing issue (only if takeaway indicates partial parse)
-            if error_msg and "parsing" in error_msg.lower():
-                # Only show parsing errors, not other transient issues
-                st.caption("ℹ️ Summary generated with partial parsing. Refresh page if content appears incomplete.")
-        else:
-            # Show error message
-            if "GEMINI_API_KEY" in error_msg:
-                st.info(
-                    "💡 To enable AI-powered news summarization, set the `GEMINI_API_KEY` environment variable. "
-                    "See README for instructions."
-                )
-            else:
-                st.warning(f"Could not generate AI summary: {error_msg}")
-                st.caption("Headlines are still available above.")
 
     st.subheader("Export")
     markdown_report = render_markdown(results)
