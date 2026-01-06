@@ -702,25 +702,7 @@ if analysis_result:
         if not recent_news:
             st.info("No recent news found for this ticker in the last 3 days.")
         else:
-            # Display top 5 articles with summaries
-            st.subheader("Recent Headlines")
-            for item in top_links:
-                title = item.get("title", "")
-                link = item.get("link", "")
-                publisher = item.get("publisher", "Unknown")
-                published_at = item.get("published_at")
-                summary = item.get("summary", "")
-
-                time_str = published_at.strftime("%b %d, %H:%M UTC") if published_at else "Unknown"
-
-                # Article card with title, metadata, and summary
-                st.markdown(f"**[{title}]({link})**")
-                st.markdown(f"*{publisher} • {time_str}*")
-                if summary:
-                    st.markdown(f"{summary}")
-                st.markdown("---")  # Divider between articles
-
-            # AI Summary section
+            # AI Summary section - FIRST
             st.subheader("AI Summary")
 
             # Try to generate summary with more context (15 articles)
@@ -759,7 +741,27 @@ if analysis_result:
                     )
                 else:
                     st.warning(f"Could not generate AI summary: {error_msg}")
-                    st.caption("Headlines are still available above.")
+                    st.caption("Headlines are still available below.")
+
+            st.markdown("")  # Add spacing
+
+            # Display top 5 articles with summaries - SECOND
+            st.subheader("Recent Headlines")
+            for item in top_links:
+                title = item.get("title", "")
+                link = item.get("link", "")
+                publisher = item.get("publisher", "Unknown")
+                published_at = item.get("published_at")
+                summary = item.get("summary", "")
+
+                time_str = published_at.strftime("%b %d, %H:%M UTC") if published_at else "Unknown"
+
+                # Article card with title, metadata, and summary
+                st.markdown(f"**[{title}]({link})**")
+                st.markdown(f"*{publisher} • {time_str}*")
+                if summary:
+                    st.markdown(f"{summary}")
+                st.markdown("---")  # Divider between articles
 
     # Tab 3: Strategy Analysis
     with tab3:
