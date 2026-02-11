@@ -15,8 +15,9 @@ load_dotenv()
 from src.data import fetch_fundamentals, fetch_price_history
 # from src.dcf import apply_scenario, build_sensitivity_table, dcf_valuation
 from src.fundamentals import parse_fundamentals
+from src.fundamental_analyzer import generate_fundamental_narrative
 from src.gemini_summarizer import summarize_news
-from src.news import fetch_news_yfinance, filter_recent_news, pick_top_links
+from src.news import fetch_news_yfinance, filter_recent_news, pick_top_links, fetch_and_analyze_news
 from src.report import render_markdown
 from src.technicals import compute_indicators, compute_long_term_pullback_signals
 from src.utils import (
@@ -618,7 +619,7 @@ if analysis_result:
     st.caption(f"Last updated: {results.get('timestamp')}")
 
     # Create tabs for different sections
-    tab1, tab2, tab3 = st.tabs(["📈 Stock", "📰 News", "📊 Strategy"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📈 Stock", "💼 Analysis", "📰 News", "📊 Strategy"])
 
     # Tab 1: Stock Analysis (Fundamentals + Technicals + Chart)
     with tab1:
@@ -677,6 +678,7 @@ if analysis_result:
             st.metric("FCF Margin", format_percent(fundamentals.get("fcf_margin")))
             st.metric("Total Debt", format_currency_abbrev(fundamentals.get("total_debt")))
 
+        st.markdown("---")
         st.subheader("Recommendation")
         recommendation = results.get("recommendation", {})
         st.write(recommendation.get("summary", "N/A"))
@@ -690,81 +692,229 @@ if analysis_result:
             for item in recommendation.get("risks", []):
                 st.write(f"- {item}")
 
-    # Tab 2: News & AI Summary
+    # Tab 2: Financial Health Assessment
     with tab2:
         ticker = results.get("ticker")
+        fundamentals = results.get("fundamentals", {})
 
-        # Fetch and filter news
-        all_news = fetch_news_yfinance(ticker)
-        recent_news = filter_recent_news(all_news, max_age_hours=72)
-        top_links = pick_top_links(recent_news, k=5)
+        st.subheader("💼 Financial Health Assessment")
+        st.markdown("*AI-powered comprehensive analysis of financial metrics and trends*")
+        st.markdown("")
 
-        if not recent_news:
+        # Get stock info for additional context
+        stock_data = fetch_fundamentals(ticker)
+        stock_info = stock_data.get("info", {})
+
+        # Generate narrative
+        narrative_data, narrative_error = generate_fundamental_narrative(
+            fundamentals=fundamentals,
+            ticker=ticker,
+            info=stock_info
+        )
+
+        if narrative_data:
+            # Health Score Row with Trends
+            col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+
+            health_score = narrative_data.get("health_score", 0)
+            overall_health = narrative_data.get("overall_health", "N/A")
+
+            # Health score with color coding
+            if health_score >= 70:
+                health_color = "🟢"
+            elif health_score >= 50:
+                health_color = "🟡"
+            else:
+                health_color = "🔴"
+
+            col1.metric("Health Score", f"{health_color} {health_score}/100", overall_health)
+
+            # Trend indicators
+            trends = narrative_data.get("trends", {})
+            col2.metric("Profitability", trends.get("profitability", "N/A"))
+            col3.metric("Growth", trends.get("growth", "N/A"))
+            col4.metric("Leverage", trends.get("leverage", "N/A"))
+
+            # Main narrative
+            st.markdown("---")
+            st.markdown("### 📖 Financial Narrative")
+            narrative = narrative_data.get("narrative", "")
+            st.write(narrative)
+
+            # Strengths and Weaknesses in columns
+            st.markdown("---")
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.markdown("### ✅ Strengths")
+                strengths = narrative_data.get("strengths", [])
+                for strength in strengths:
+                    st.success(f"✓ {strength}")
+
+            with col2:
+                st.markdown("### ⚠️ Weaknesses")
+                weaknesses = narrative_data.get("weaknesses", [])
+                for weakness in weaknesses:
+                    st.warning(f"• {weakness}")
+
+            # Red flags (if any)
+            red_flags = narrative_data.get("red_flags", [])
+            if red_flags:
+                st.markdown("---")
+                st.markdown("### 🚨 Red Flags")
+                for flag in red_flags:
+                    st.error(f"⚠️ {flag}")
+
+            # Peer context
+            peer_context = narrative_data.get("peer_context", "")
+            if peer_context:
+                st.markdown("---")
+                st.info(f"**Sector Context:** {peer_context}")
+
+        elif narrative_error:
+            # Error handling
+            if "GEMINI_API_KEY" in narrative_error:
+                st.info("💡 Set GEMINI_API_KEY to enable AI-powered fundamental analysis.")
+            else:
+                st.warning(f"Could not generate financial narrative: {narrative_error}")
+
+    # Tab 3: News & AI Summary with Sentiment Analysis
+    with tab3:
+        ticker = results.get("ticker")
+
+        # Fetch and analyze news with enhanced pipeline
+        news_data = fetch_and_analyze_news(ticker, max_age_hours=72)
+        articles = news_data.get("articles", [])
+        aggregate = news_data.get("aggregate_summary")
+        pipeline_error = news_data.get("error")
+
+        if not articles:
             st.info("No recent news found for this ticker in the last 3 days.")
         else:
-            # AI Summary section - FIRST
-            st.subheader("AI Summary")
+            # SECTION 1: Aggregate Summary with Sentiment
+            st.subheader("📊 News Overview")
 
-            # Try to generate summary with more context (15 articles)
-            summary_data, error_msg = summarize_news(recent_news, ticker, max_items_for_context=15)
+            if aggregate:
+                # Sentiment metrics row
+                col1, col2, col3 = st.columns([1, 1, 2])
 
-            if summary_data:
-                # Display bullets
-                bullets = summary_data.get("bullets", [])
+                with col1:
+                    sentiment_score = aggregate.get("aggregate_sentiment", 0)
+                    sentiment_color = "🟢" if sentiment_score > 0.3 else "🔴" if sentiment_score < -0.3 else "🟡"
+                    trend = aggregate.get("sentiment_trend", "Stable")
+                    st.metric(
+                        "Overall Sentiment",
+                        f"{sentiment_color} {sentiment_score:.2f}",
+                        trend
+                    )
+
+                with col2:
+                    dist = aggregate.get("sentiment_distribution", {})
+                    positive = dist.get('positive', 0)
+                    neutral = dist.get('neutral', 0)
+                    negative = dist.get('negative', 0)
+                    st.metric(
+                        "Article Breakdown",
+                        f"↑{positive} ↔{neutral} ↓{negative}"
+                    )
+
+                with col3:
+                    st.write("")  # Spacing
+
+                # Key bullets
+                bullets = aggregate.get("bullets", [])
                 if bullets:
+                    st.markdown("**Key Developments:**")
                     for bullet in bullets:
                         st.write(f"- {bullet}")
 
-                # Display takeaway
-                takeaway = summary_data.get("takeaway", "")
+                # Takeaway
+                takeaway = aggregate.get("takeaway", "")
                 if takeaway:
-                    st.markdown("")  # Add spacing
-                    st.markdown(f"**Overall Takeaway:** {takeaway}")
+                    st.markdown("")
+                    st.info(f"**💡 Overall Takeaway:** {takeaway}")
 
-                # Display watch items if available
-                watch_items = summary_data.get("watch_items", [])
+                # Watch items
+                watch_items = aggregate.get("watch_items", [])
                 if watch_items:
-                    st.markdown("")  # Add spacing
-                    st.markdown("**Watch Items:**")
+                    st.markdown("**🔍 Watch Items:**")
                     for item in watch_items:
                         st.write(f"- {item}")
 
-                # Show info if there was a parsing issue
-                if error_msg and "parsing" in error_msg.lower():
-                    st.caption("ℹ️ Summary generated with partial parsing. Refresh page if content appears incomplete.")
             else:
-                # Show error message
-                if "GEMINI_API_KEY" in error_msg:
+                # Fallback if aggregate analysis fails
+                if pipeline_error and "GEMINI_API_KEY" in pipeline_error:
                     st.info(
-                        "💡 To enable AI-powered news summarization, set the `GEMINI_API_KEY` environment variable. "
+                        "💡 To enable AI-powered news sentiment analysis, set the `GEMINI_API_KEY` environment variable. "
                         "See README for instructions."
                     )
                 else:
-                    st.warning(f"Could not generate AI summary: {error_msg}")
-                    st.caption("Headlines are still available below.")
+                    st.warning(f"Could not generate AI summary: {pipeline_error or 'Unknown error'}")
 
-            st.markdown("")  # Add spacing
+            # SECTION 2: Top Entities
+            if aggregate and aggregate.get("top_entities"):
+                st.markdown("---")
+                st.subheader("🏷️ Key Entities Mentioned")
 
-            # Display top 5 articles with summaries - SECOND
-            st.subheader("Recent Headlines")
-            for item in top_links:
-                title = item.get("title", "")
-                link = item.get("link", "")
-                publisher = item.get("publisher", "Unknown")
-                published_at = item.get("published_at")
-                summary = item.get("summary", "")
+                entities = aggregate.get("top_entities", {})
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    partnerships = entities.get("partnerships", [])
+                    if partnerships:
+                        st.markdown("**🤝 Partnerships/Deals:**")
+                        for p in partnerships[:3]:
+                            st.markdown(f"• {p}")
+
+                    products = entities.get("products", [])
+                    if products:
+                        st.markdown("")
+                        st.markdown("**🚀 Products/Launches:**")
+                        for p in products[:3]:
+                            st.markdown(f"• {p}")
+
+                with col2:
+                    people = entities.get("people", [])
+                    if people:
+                        st.markdown("**👥 Key People:**")
+                        for p in people[:3]:
+                            st.markdown(f"• {p}")
+
+                    regulatory = entities.get("regulatory", [])
+                    if regulatory:
+                        st.markdown("")
+                        st.markdown("**⚖️ Regulatory:**")
+                        for r in regulatory[:3]:
+                            st.markdown(f"• {r}")
+
+            # SECTION 3: Individual Article Headlines
+            st.markdown("---")
+            st.subheader("📰 Recent Articles")
+
+            # Show top 10 articles as simple list
+            for article in articles[:10]:
+                title = article.get("title", "")
+                link = article.get("link", "")
+                publisher = article.get("publisher", "Unknown")
+                published_at = article.get("published_at")
+                summary = article.get("summary", "")
 
                 time_str = published_at.strftime("%b %d, %H:%M UTC") if published_at else "Unknown"
 
-                # Article card with title, metadata, and summary
+                # Simple article card
                 st.markdown(f"**[{title}]({link})**")
                 st.markdown(f"*{publisher} • {time_str}*")
                 if summary:
-                    st.markdown(f"{summary}")
-                st.markdown("---")  # Divider between articles
+                    st.markdown(f"{summary[:200]}...")
 
-    # Tab 3: Strategy Analysis
-    with tab3:
+                # Show if full content was used in aggregate analysis
+                if article.get("full_content"):
+                    st.caption("✅ Full article analyzed")
+
+                st.markdown("---")
+
+    # Tab 4: Strategy Analysis
+    with tab4:
         try:
             # Compute strategy signals on demand
             strategy_df = compute_long_term_pullback_signals(
