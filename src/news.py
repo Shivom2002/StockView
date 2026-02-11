@@ -151,3 +151,60 @@ def fetch_news_yfinance(ticker: str) -> List[Dict[str, Any]]:
     except Exception as e:
         # Return empty list on any error
         return []
+
+
+def fetch_and_analyze_news(ticker: str, max_age_hours: int = 72) -> Dict[str, Any]:
+    """
+    Complete news pipeline: fetch → scrape → aggregate analysis.
+
+    Args:
+        ticker: Stock ticker symbol
+        max_age_hours: Maximum age of news articles to include (default 72 hours)
+
+    Returns:
+        {
+            "articles": List[Dict],  # Articles with scraped content
+            "aggregate_summary": Dict,  # Aggregate summary with sentiment
+            "error": Optional[str]  # Error message if pipeline fails
+        }
+    """
+    from .article_scraper import scrape_multiple_articles
+    from .gemini_summarizer import summarize_news_with_sentiment_direct
+
+    result = {
+        "articles": [],
+        "aggregate_summary": None,
+        "error": None
+    }
+
+    try:
+        # Step 1: Fetch from yfinance
+        all_news = fetch_news_yfinance(ticker)
+        if not all_news:
+            result["error"] = "No news available from yfinance"
+            return result
+
+        # Step 2: Filter recent
+        recent_news = filter_recent_news(all_news, max_age_hours)
+        if not recent_news:
+            result["error"] = f"No news found in the last {max_age_hours} hours"
+            return result
+
+        # Step 3: Scrape full content in parallel (top 15 articles)
+        enriched_news = scrape_multiple_articles(recent_news, max_workers=5, max_articles=15)
+
+        result["articles"] = enriched_news
+
+        # Step 4: Generate aggregate summary directly from articles (single API call)
+        aggregate, agg_error = summarize_news_with_sentiment_direct(enriched_news, ticker)
+        if aggregate:
+            result["aggregate_summary"] = aggregate
+        else:
+            result["aggregate_summary"] = None
+            result["error"] = agg_error or "Failed to generate aggregate summary"
+
+        return result
+
+    except Exception as e:
+        result["error"] = f"News pipeline error: {str(e)}"
+        return result
